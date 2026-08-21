@@ -1,0 +1,55 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+.ruff_cache/
+.mypy_cache/
+
+# Editors and operating systems
+.DS_Store
+.idea/
+.vscode/
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*credentials*
+*secret*
+platform.local.yaml
+
+# Scientific runtime artifacts
+campaigns/
+results/
+logs/
+outputs/
+checkpoints/
+models/
+trajectories/
+warp_cache/
+*.out
+*.err
+*.log
+*.h5
+*.hdf5
+*.npy
+*.npz
+*.pb
+*.pth
+*.pt
+*.model
+OUTCAR*
+vasprun.xml*
+WAVECAR*
+CHGCAR*
+POTCAR*
+

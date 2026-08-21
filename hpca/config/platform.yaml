@@ -1,0 +1,1020 @@
+# hpca platform configuration
+#
+# Single source of truth for ALL cluster paths and simulation constants.
+# Zero hardcodes in handler code — everything is read from here.
+#
+# Execution lane: slurm — async sbatch production jobs.
+#
+# Resolution rule (SimulationHandler.resolve() in base.py):
+#   slurm → project.yaml simulation.* → limits.slurm.* (fallback)
+
+# ── Category physics defaults ─────────────────────────────────────────────────
+# One entry per category registered in hpca/core/categories.py.
+# To add a new category: (1) register it in categories.py, (2) add its defaults here.
+# All fields are optional; missing fields fall back to the handler's hard-coded default.
+category_defaults:
+  # ── Molecular categories ────────────────────────────────────────────────────
+  solvent:
+    k_SEI: 1.0e-20           # SEI growth rate constant (m/s)
+    j0_mA_cm2: 1.0           # exchange current density
+    alpha: 0.5               # Butler-Volmer symmetry factor
+    A_powerlaw: 0.20
+    n_powerlaw: 0.25
+    kjma_k: 0.005
+    kjma_n: 3.0
+
+  salt:
+    k_SEI: 1.0e-20
+    j0_mA_cm2: 1.0
+    alpha: 0.5
+    A_powerlaw: 0.20
+    n_powerlaw: 0.25
+    kjma_k: 0.005
+    kjma_n: 3.0
+
+  liquid_electrolyte:          # legacy — kept for backward compatibility
+    k_SEI: 1.0e-20
+    j0_mA_cm2: 1.0
+    alpha: 0.5
+    A_powerlaw: 0.20
+    n_powerlaw: 0.25
+    kjma_k: 0.005
+    kjma_n: 3.0
+
+  polymer:
+    j0_mA_cm2: 0.1
+    alpha: 0.5
+    A_powerlaw: 0.265
+    n_powerlaw: 0.155
+    kjma_k: 0.001
+    kjma_n: 2.5
+
+  copolymer:
+    j0_mA_cm2: 0.1
+    alpha: 0.5
+    A_powerlaw: 0.265
+    n_powerlaw: 0.155
+    kjma_k: 0.001
+    kjma_n: 2.5
+
+  # ── Crystalline categories ──────────────────────────────────────────────────
+  solid:                       # generic solid (crystal, hard carbon, MOF, interface)
+    k_SEI: 1.0e-18
+    j0_mA_cm2: 0.5
+    alpha: 0.5
+    A_powerlaw: 0.265
+    n_powerlaw: 0.155
+    kjma_k: 0.001
+    kjma_n: 2.5
+
+  inorganic:                   # legacy generic inorganic
+    k_SEI: 1.0e-18
+    j0_mA_cm2: 0.5
+    alpha: 0.5
+    A_powerlaw: 0.265
+    n_powerlaw: 0.155
+    kjma_k: 0.001
+    kjma_n: 2.5
+
+  inorganic_sse:               # legacy SSE (solid-state electrolyte)
+    k_SEI: 1.0e-18
+    j0_mA_cm2: 0.5
+    alpha: 0.5
+    A_powerlaw: 0.265
+    n_powerlaw: 0.155
+    kjma_k: 0.001
+    kjma_n: 2.5
+
+# ── MLIP registry ─────────────────────────────────────────────────────────────
+mlip_registry:
+  deepmd:
+    categories: [inorganic, inorganic_sse]
+    env: deepmd-lammps-gpu
+    gpu: true
+  mace-mp0:
+    categories: [inorganic, inorganic_sse, polymer, liquid_electrolyte]
+    env: deepmd-lammps-gpu
+    gpu: true
+  uma:
+    categories: [inorganic, inorganic_sse, polymer, liquid_electrolyte]
+    env: deepmd-lammps-gpu
+    gpu: true
+  mace-off23:
+    categories: [polymer, liquid_electrolyte]
+    env: deepmd-lammps-gpu
+    gpu: true
+  m3gnet-pbe:
+    categories: [inorganic, inorganic_sse]
+    env: cladue
+    gpu: false
+  chgnet-pbe:
+    categories: [inorganic, inorganic_sse]
+    env: cladue
+    gpu: false
+  tensornet-pbe:
+    categories: [inorganic, inorganic_sse]
+    env: cladue
+    gpu: false
+  esen-omol:
+    categories: [polymer, liquid_electrolyte]
+    env: deepmd-lammps-gpu
+    gpu: true
+
+# Optional structure preoptimization policy.  Validation and deterministic
+# overlap repair always run; MACE is selected only when the decision tree finds
+# it useful and predicts that it will finish inside this budget.
+preoptimization:
+  mode: auto                       # auto | mace | none
+  severe_overlap_A: 0.8
+  repair_min_distance_A: 1.0
+  crystal_min_distance_A: 1.0
+  max_runtime_s: 1800
+  seconds_per_atom_step: 0.002
+  steps: 1000
+  ntasks: 1                        # MACE no-domain-decomposition backend
+
+# Independent daemon-local admission queues.  Material design (PACKMOL,
+# builders) can overlap MACE preoptimization from other projects without either
+# workload becoming unbounded.  Override per allocation with
+# HPCA_DESIGN_WORKERS / HPCA_PREOPT_WORKERS.
+daemon_tasks:
+  material_design_workers: 1
+  preoptimization_workers: 1
+
+# ── HPC cluster paths ─────────────────────────────────────────────────────────
+hpc:
+  python_cladue: /path/to/apps/apps/cladue/env/bin/python3
+  python_deepmd: /path/to/apps/apps/deepmd-lammps-gpu/conda_env/bin/python3
+  python_gpu: /path/to/apps/apps/deepmd-lammps-gpu/conda_env/bin/python3
+  claude_bin: /path/to/apps/apps/cladue/node_modules/.bin/claude
+  lammps_bin: /path/to/apps/apps/deepmd-lammps-gpu/lammps_install/bin/lmp
+  lammps_gpu_bin: /path/to/apps/apps/deepmd-lammps-gpu/lammps_install/bin/lmp
+  lammps_cpu_bin: /path/to/apps/apps/deepmd-lammps-cpu_2023/lmp_mpi
+  deepmd_lammps_gpu_env: /path/to/apps/apps/deepmd-lammps-gpu/conda_env
+  mpirun_bin: /nopt/nrel/apps/cpu_stack/mpi/06-24/linux-rhel8-sapphirerapids/gcc-12.3.0/openmpi-4.1.6-jn5koawwoupq6h7vq4tnjx6k3g3pxmfy/bin/mpirun
+  deepmd_lammps_venv_2023: /path/to/apps/apps/deepmd-lammps-cpu_2023/venv
+  lammps_cpu_ntasks_slurm: 104
+  analysis_cpu_ntasks_slurm: 104   # h06_analysis worker job: full CPU node, 1 task/core
+  deepmd_cpu_venv: /path/to/apps/apps/dp_package/dp_venv
+  cladue_site_packages: /path/to/apps/apps/cladue/env/lib/python3.11/site-packages
+  packmol_bin: /path/to/apps/apps/packmol-21.2.3/packmol
+  input_structures_library: /path/to/workspace/hpca/input_structures
+  bader_bin: bader                     # 'bader' if on $PATH, else full path
+  chaai_root: /path/to/apps/Chaai
+  hf_cache: /path/to/workspace/hf_cache
+  # MACE foundation model paths — bundled in hpca/mlip_library/
+  mlip_library: /path/to/workspace/hpca/mlip_library
+  mace_off_model: /path/to/workspace/hpca/mlip_library/MACE-OFF23_medium.model
+  mace_mp_model:  /path/to/workspace/hpca/mlip_library/MACE-MPA-0_medium.model
+  mace_mp_lammps_pt: /path/to/workspace/hpca/mlip_library/MACE-MPA-0_medium.model-lammps.pt
+  mace_off_lammps_pt: /path/to/workspace/hpca/mlip_library/MACE-OFF23_medium.model-lammps.pt
+  mace_create_lammps_bin: ""           # mace_create_lammps_model binary (auto-found if empty)
+  deepmd_bin: ""                       # dp binary (auto-found from deepmd_cpu_venv if empty)
+  vasp_module: vasp/6.4.2_openMP
+  potpaw_dir: /path/to/apps/apps/vasp_src/potential/potpaw_PBE
+  box_enlargement_factor: 1.2        # initial box volume multiplier for CMD/MLMD designs
+  global_manuscript_dir: ""          # optional cross-project manuscript archive (empty = disabled)
+  # NEB parameters — read by h03_neb.py via Config
+  neb_n_images: 11                   # intermediate images (endpoints = 00 and N+1)
+  neb_cores_per_image: 16            # MPI tasks per NEB image job
+  neb_cores_per_node: 96             # cores per node for NEB image packing
+  neb_mobile_ion_cutoff_A: 5.5       # vacancy hop search radius — applies to any mobile ion (Å)
+  neb_relax_radius_A: 4.0            # selective dynamics freeze radius around migrating atom
+  accounts:
+    standard: your_account
+    gpu_h100: your_account
+    gpu_h100l: lips
+  account_fallback: your_account           # used when a key is missing from accounts above
+  project_base: /path/to/workspace     # default base directory for project roots
+  allowed_project_roots:             # daemon accepts project dirs under these only
+    - /path/to/workspace
+    - /path/to/workspace
+  matdesign_src: /path/to/workspace/c2c_simulation/packages/01_materials_design/matdesign/src  # optional legacy package (skipped if absent)
+  alerts_log: /path/to/workspace/hpca/orchestrator/logs/alerts.jsonl
+  # Named module-list bundles — the ONLY place module names appear.
+  # Consumed via Config.modules(bundle) + slurm_submit.module_load_block().
+  modules:
+    vasp:   [vasp/6.4.2_openMP]
+    gpu_md: [cuda/12.3, openmpi/4.1.6-gcc, conda/2024.06.1]
+    cpu_md: [openmpi/4.1.6-gcc, conda/2024.06.1]
+    conda:  [conda/2024.06.1]
+  # POTCAR PAW prefix table — element → subdirectory under potpaw_dir
+  # Follows VASP recommendations: _sv=semi-core s+p, _pv=semi-core p, _d=d-states
+  potcar_prefix:
+    # Alkali / alkaline-earth
+    Li: Li
+    Na: Na_pv
+    K:  K_sv
+    Mg: Mg
+    Ca: Ca_sv
+    Sr: Sr_sv
+    # Non-metals
+    H:  H
+    B:  B
+    C:  C
+    N:  N
+    O:  O
+    F:  F
+    Si: Si
+    P:  P
+    S:  S
+    Cl: Cl
+    Ge: Ge_d
+    As: As
+    Se: Se
+    Br: Br
+    Sn: Sn_d
+    Sb: Sb
+    Te: Te
+    I:  I
+    # Transition metals — cathode / electrode / framework
+    Ti: Ti_sv
+    V:  V_sv
+    Cr: Cr_pv
+    Mn: Mn_pv
+    Fe: Fe_pv
+    Co: Co
+    Ni: Ni
+    Cu: Cu_pv
+    Zn: Zn
+    Nb: Nb_sv
+    Mo: Mo_pv
+    Ta: Ta_pv
+    W:  W_pv
+    # Structural / SSE framework metals
+    Al: Al
+    Ga: Ga_d
+    In: In_d
+    Sc: Sc_sv
+    Y:  Y_sv
+    Zr: Zr_sv
+    Hf: Hf_pv
+    La: La
+    Ce: Ce
+    Gd: Gd_3
+    Nd: Nd_3
+    Sm: Sm_3
+    Er: Er_3
+    Yb: Yb_2
+    Lu: Lu_3
+    Pb: Pb_d
+    Bi: Bi
+
+# ── Simulation limits (SLURM lane — defaults, overridable by project.yaml simulation:) ─
+limits:
+  slurm:
+    # Atom counts per tier
+    dft_atoms:  200
+    mlmd_atoms: 6000
+    cmd_atoms:  60000
+    # VASP resources
+    vasp_ntasks: 96           # sbatch --ntasks for VASP jobs
+    dft_ncore: 8              # INCAR NCORE
+    dft_nsw_vcrelax: 400      # NSW for vc_relax (full convergence)
+    dft_nsw_opt: 400          # NSW for opt
+    aimd_relax_steps: 500     # NSW for aimd_relax (pre-equilibration)
+    aimd_relax_temp: 600      # TEBEG/TEEND for aimd_relax (K)
+    # AIMD
+    aimd_steps: 3000          # NVT steps per T (3 ps at 1 fs/step)
+    aimd_dataset_steps: 3000  # steps per dataset box
+    npt_steps_aimd: 3000      # AIMD preopt NPT steps
+    # NVT/NPT durations (time-based, converted to steps by handler)
+    aimd_nvt_ps: 3
+    mlmd_nvt_ns: 2
+    cmd_nvt_ns: 2
+    mlmd_npt_ps: 500
+    cmd_npt_ps: 500
+    aimd_time_per_step_fs: 1
+    mlmd_time_per_step_fs: 1
+    cmd_time_per_step_fs: 1
+    # MLIP
+    mlip_numb_steps: 500000
+
+  nvt_temperatures_mol: [300, 320, 340, 360, 380, 400, 450, 500]
+  nvt_temperatures_sse: [300, 320, 340, 360, 380, 400, 500, 600, 650, 700]
+
+  npt_temperature: 300
+
+# ── SLURM walltime limits per stage ──────────────────────────────────────────
+slurm_time:
+  dft_vc:         "78:00:00"
+  dft_opt:        "48:00:00"
+  dft_bader:      "24:00:00"
+  dft_dos:        "24:00:00"
+  aimd_npt:       "88:00:00"
+  aimd_dataset:   "94:00:00"
+  aimd_nvt:       "88:00:00"
+  mlip_cpu:       "48:00:00"
+  mlip_gpu:       "44:00:00"
+  mlmd_npt:       "78:00:00"
+  mlmd_nvt:       "72:00:00"
+  cmd_npt:        "58:00:00"
+  cmd_nvt:        "98:00:00"
+  neb_endpoint:   "48:00:00"   # endpoint geometry optimisations (2 nodes)
+  neb_image:      "20:00:00"  # image geometry optimisations (1 node, ≤6 images)
+  analysis_cpu:   "12:00:00"  # h06_analysis: one variant (all temperatures) per job
+
+# ── VASP node/core presets ────────────────────────────────────────────────────
+vasp_nodes:
+  small:  [1, 64]    # < 50 atoms
+  medium: [1, 96]    # 50–100 atoms
+  large:  [1, 96]    # > 100 atoms
+  ncore:  8          # INCAR NCORE for all VASP jobs
+
+# ── AIMD dataset generation parameters ───────────────────────────────────────
+aimd_dataset:
+  deform_scales:           [0.90, 0.95, 1.00, 1.05, 1.10]
+  random_scales:           [0.95, 1.00, 1.05]
+  temps:                   [300, 400]
+  discard_initial_steps:   0
+  frame_stride:            10
+  small_cell_atoms:        100
+  partial_threshold_steps: 3500
+  max_liquid_submit:       1500
+  min_atom_distance_ang:   1.2
+
+# ── LAMMPS MD force-field parameters ─────────────────────────────────────────
+lammps_md:
+  timestep_fs_cmd:        1.0      # fs/step — CMD (OPLS-AA); was 2.0
+  timestep_fs_mlmd:       1.0      # fs/step — MLMD (DeepMD / MACE)
+  # CMD NPT stage step counts (1 fs/step; total heat+quench+npt = 1 ns)
+  cmd_npt_npt_steps:      500000  # NPT at T_target, 1 atm (1 ns — box compresses from oversized to target density)
+  # Dump frequencies (steps between frames) — all MD tiers
+  cmd_npt_dump_freq:      500      # CMD NPT trajectory frames
+  cmd_nvt_dump_freq:      500      # CMD NVT trajectory frames
+  mlmd_npt_dump_freq:     500      # MLMD NPT trajectory frames
+  mlmd_nvt_dump_freq:     500      # MLMD NVT trajectory frames
+  # CMD force-field / neighbor constants
+  cmd_lj_cutoff_A:        14.0     # LJ + Coulomb real-space cutoff (Å)
+  cmd_kspace_accuracy:    1.0e-4   # PPPM relative accuracy
+  cmd_neighbor_skin_A:    2.0      # Neighbor list skin (Å)
+  cmd_comm_cutoff_A:      35.0     # Ghost-atom communication cutoff (Å)
+  cmd_thermo_freq:        10       # Thermo output every N steps
+  # CMD Nose-Hoover thermostat/barostat damping constants
+  npt_temp_damp_cmd:      200.0    # fs, CMD NPT thermostat
+  npt_press_damp_cmd:     2000.0   # fs, CMD NPT barostat
+  nvt_temp_damp_cmd:      100.0    # fs, CMD NVT thermostat
+  # MLMD Nose-Hoover damping constants (metal units: ps)
+  mlmd_npt_temp_damp:     0.1      # ps, MLMD NPT thermostat
+  mlmd_npt_press_damp:    1.0      # ps, MLMD NPT barostat
+  mlmd_nvt_temp_damp:     0.05     # ps, MLMD NVT thermostat
+  dump_min_size_slurm:    1000000  # bytes; below this = incomplete dump
+  energy_drift_threshold_eV: 10.0
+
+# ── MLIP default hyperparameters ─────────────────────────────────────────────
+mlip_defaults:
+  rcut:                6.0
+  rcut_smooth:         5.5
+  neuron_descriptor:   [25, 50, 100]
+  neuron_fitting:      [240, 240, 240]
+  start_lr:            0.001
+  decay_steps:         5000
+  numb_steps:          500000
+  batch_size:          32
+  save_freq:           10000
+  disp_freq:           1000
+  loss_pref_e_start:   0.02
+  loss_pref_e_limit:   1.0
+  loss_pref_f_start:   1000
+  loss_pref_f_limit:   1.0
+  rmse_e_threshold:    5.0e-3   # meV/atom
+  rmse_f_threshold:    0.1      # eV/Å
+  mace_max_epochs:     200
+  mace_valid_batch:    8
+  mace_foundation:     "mace-mpa-0"
+
+# ── Analysis defaults ─────────────────────────────────────────────────────────
+analysis_defaults:
+  rdf_r_max:           8.0
+  rdf_n_bins:          200
+  van_hove_r_max:      10.0
+  van_hove_n_rbins:    100
+  van_hove_t_frames:   [1, 5, 10, 20, 50, 100, 200]
+  coordination_r_max:  8.0
+  coordination_n_bins: 200
+  ion_pair_r_contact:  4.5     # Å, contact-ion-pair threshold
+  ion_pair_r_ssip:     7.5     # Å, solvent-separated threshold
+  msd_skip_frac:       0.2     # discard first 20% of trajectory as equilibration
+  min_dump_bytes:      100000  # minimum trajectory file size for h06 analysis
+  msd_max_lag_frac:    0.5
+  vacf_max_lag:        500
+  boltzmann_eV_K:      8.617333e-5
+  parallel_temps:      4       # concurrent per-temperature analyses within one analysis_cpu job
+
+# ── Orchestrator daemon ───────────────────────────────────────────────────────
+orchestrator:
+  poll_interval_seconds: 60       # seconds between full sweeps
+  wall_buffer_hours: 5.0          # hours before wall-time to self-restart
+  log_heartbeat_every_n_polls: 5  # heartbeat line every N polls (= 5 min at 60s)
+  scontrol_timeout_seconds: 20
+  inbox_dir: /path/to/workspace/hpca/daemon_inbox
+  active_subdir: active
+  archived_subdir: archived
+  failed_subdir: failed
+  skip_dirs: [__pycache__, .git, .claude, apps, _archive, txt, input_structures,
+              bin, scripts, docs, logs]
+
+handler_timeouts:
+  submit_s:       300
+  check_s:         60
+  mace_preopt_s: 3600
+  dptest_s:       600
+
+# ── Performance model (walltime estimation) ───────────────────────────────────
+perf_model:
+  # VASP empirical rates (seconds / atom / step, Kestrel single node 96 MPI)
+  vasp_s_per_atom_per_step_aimd:   0.06    # Gamma-only AIMD
+  vasp_s_per_atom_per_step_kpt:    0.20    # k-points AIMD
+  vasp_s_per_atom_per_step_relax:  0.12    # ionic relax (vc_relax / opt)
+  vasp_s_per_atom_per_step_static: 0.05    # static / Bader / DOS
+  vasp_s_per_atom_per_step_neb:    0.10    # NEB per image
+  vasp_safety_factor_aimd:  1.25
+  vasp_safety_factor_relax: 1.30
+  vasp_safety_factor_neb:   1.50
+  vasp_safety_factor_static: 1.20
+  vasp_min_hours_aimd:      8.0
+  vasp_min_hours_relax:     4.0
+  vasp_min_hours_neb:       12.0
+  vasp_min_hours_static:    2.0
+  vasp_max_hours_standard:  44.0   # standard partition: 4h buffer below 48h wall
+  vasp_max_hours_long:      238.0  # long partition: 2h buffer below 240h wall
+  # LAMMPS MLMD (H100 GPU) empirical throughput
+  mlmd_steps_per_hour_per_gpu: 1_000_000_000  # steps/h/GPU at ~natoms/natoms_ref
+  mlmd_natoms_ref: 1                           # normalize: sph = n_gpus * ref / natoms
+  mlmd_safety_factor: 1.5
+  mlmd_min_hours_large: 24.0   # for natoms>=5000 or n_steps>=2M
+  mlmd_min_hours_small: 8.0
+  mlmd_max_hours: 72.0
+  # LAMMPS CMD (CPU, OPLS-AA + Ewald)
+  cmd_ns_per_day_reference: 4.0        # ns/day at 50k atoms, 104 CPUs, 1 fs timestep
+  cmd_natoms_reference: 50_000
+  cmd_ncpus_reference: 104
+  cmd_safety_factor: 1.4
+  cmd_min_hours_large: 24.0   # for natoms>10k or n_steps>=2M
+  cmd_min_hours_small: 6.0
+  cmd_max_hours: 72.0
+  # MLIP training
+  mlip_deepmd_steps_per_hour: 10_000  # steps/hour (CPU, 104 tasks)
+  mlip_mace_epochs_per_hour: 5        # epochs/hour (2× H100 GPU)
+  mlip_min_hours: 2.0
+  mlip_max_hours_cpu: 48.0
+  mlip_max_hours_gpu: 24.0
+
+# ── NCORE / ntasks rules (by atom count) ─────────────────────────────────────
+ncore_rules:
+  # atoms < threshold → use these settings; last entry is the catch-all
+  - {max_atoms: 64,    njobs: 6, ntasks: 16, ncore: 4}
+  - {max_atoms: 999999, njobs: 1, ntasks: 96, ncore: 8}
+
+# ── K-point mesh lookup (by longest lattice vector, Angstrom) ─────────────────
+kpoints_rules:
+  - {max_a: 2,     mesh: [12, 12, 12]}
+  - {max_a: 3,     mesh: [10, 10, 10]}
+  - {max_a: 4,     mesh: [ 8,  8,  8]}
+  - {max_a: 6,     mesh: [ 6,  6,  6]}
+  - {max_a: 8,     mesh: [ 4,  4,  4]}
+  - {max_a: 10,    mesh: [ 2,  2,  2]}
+  - {max_a: 999999, mesh: [ 1,  1,  1]}
+
+# ── VASP INCAR templates — single source of truth for all calculation types ───
+# All numbers live here; incar_registry.py loads this section at import time.
+# ENCUT and NCORE are placeholders — always overridden by build_incar()
+# from POTCAR ENMAX and ncore_rules respectively.
+# NSW is overridden by the caller for NVT/NPT (from limits.slurm.* or project.yaml).
+# TEBEG/TEEND are overridden per temperature by the handler.
+incar_templates:
+
+  # ── DFT relaxation ──────────────────────────────────────────────────────────
+  vc_relax:
+    PREC: Medium
+    ENCUT: 520
+    ISMEAR: 0
+    SIGMA: 0.05
+    NELM: 120
+    EDIFF: 1.0e-5
+    EDIFFG: -0.02
+    IBRION: 2
+    NSW: 800
+    ISIF: 3
+    ISYM: 0
+    LWAVE: F
+    LCHARG: F
+    LREAL: Auto
+    NCORE: 8
+    LORBIT: 11
+    SYMPREC: 1.0e-4
+
+  opt:
+    PREC: Medium
+    ENCUT: 520
+    ISMEAR: 0
+    SIGMA: 0.05
+    NELM: 120
+    EDIFF: 1.0e-5
+    EDIFFG: -0.02
+    IBRION: 2
+    NSW: 400
+    ISIF: 2
+    ISYM: 0
+    LWAVE: F
+    LCHARG: F
+    LREAL: Auto
+    NCORE: 8
+    LORBIT: 11
+    SYMPREC: 1.0e-4
+
+  # ── Electronic structure ─────────────────────────────────────────────────────
+  bader:
+    PREC: Accurate
+    ENCUT: 520
+    ALGO: Normal
+    EDIFF: 1.0e-6
+    ISMEAR: 0
+    SIGMA: 0.05
+    ISYM: 0
+    LREAL: Auto
+    NELM: 120
+    NCORE: 8
+    IBRION: -1
+    NSW: 0
+    LCHARG: ".TRUE."
+    LAECHG: ".TRUE."
+    LWAVE: ".FALSE."
+    LORBIT: 11
+    ISPIN: 1
+    SYMPREC: 1.0e-4
+
+  dos_scf:
+    PREC: Accurate
+    ENCUT: 520
+    ISMEAR: 1
+    SIGMA: 0.1
+    NCORE: 8
+    NELM: 120
+    EDIFF: 1.0e-6
+    IBRION: 2
+    NSW: 1
+    ISIF: 2
+    ISYM: 0
+    LWAVE: T
+    LCHARG: T
+    LREAL: Auto
+    LORBIT: 11
+    SYMPREC: 1.0e-4
+
+  dos_nonscf:
+    ICHARG: 11
+    NEDOS: 2000
+    EMIN: -10
+    EMAX: 10
+    NCORE: 8
+    ISMEAR: -5
+    SIGMA: 0.1
+    ENCUT: 520
+    IBRION: 2
+    NSW: 0
+    ISYM: 0
+    LREAL: Auto
+    LWAVE: F
+    LCHARG: F
+    LORBIT: 11
+    SYMPREC: 1.0e-4
+
+  static:
+    PREC: Accurate
+    ENCUT: 520
+    ISMEAR: -5
+    SIGMA: 0.05
+    NCORE: 8
+    EDIFF: 1.0e-6
+    NSW: 0
+    IBRION: -1
+    ISYM: 0
+    LREAL: Auto
+    LWAVE: F
+    LCHARG: F
+    LORBIT: 11
+    SYMPREC: 1.0e-4
+
+  echem_static:
+    PREC: Medium
+    ENCUT: 520
+    ISMEAR: 0
+    SIGMA: 0.05
+    NSW: 400
+    ISIF: 2
+    EDIFFG: -0.02
+    IBRION: 2
+    LWAVE: F
+    LCHARG: F
+    NCORE: 8
+
+  # ── AIMD pre-equilibration (short NPT to relax doped/substituted structure) ──
+  aimd_relax:
+    PREC: Medium
+    ENCUT: 520
+    ISMEAR: 0
+    SIGMA: 0.02
+    NELM: 60
+    NELMIN: 4
+    EDIFF: 1.0e-4
+    NCORE: 8
+    IBRION: 0
+    NSW: 500
+    POTIM: 2.0
+    ISIF: 3
+    ISYM: 0
+    MDALGO: 2
+    SMASS: 0
+    TEBEG: 600
+    TEEND: 600
+    LWAVE: F
+    LCHARG: F
+    LREAL: A
+    LORBIT: 0
+
+  # ── NPT Step 0 — cell equilibration before NVT (MDALGO=3: Nosé-Hoover+PR) ──
+  # ISIF=3: full cell (mol); ISIF=4: volume+shape only (sse/int)
+  npt_step0_mol:
+    PREC: Normal
+    ENCUT: 520
+    IBRION: 0
+    MDALGO: 3
+    SMASS: 0
+    PMASS: 50
+    PSTRESS: 0
+    NSW: 3000
+    POTIM: 1.0
+    ISIF: 3
+    ISMEAR: 0
+    SIGMA: 0.1
+    TEBEG: 300
+    TEEND: 300
+    LWAVE: F
+    LCHARG: F
+    NCORE: 8
+
+  npt_step0_sse:
+    PREC: Normal
+    ENCUT: 520
+    IBRION: 0
+    MDALGO: 3
+    SMASS: 0
+    PMASS: 50
+    PSTRESS: 0
+    NSW: 3000
+    # POTIM 1.0->0.5 (2026-08-21): this is the template actually used by
+    # HC_Na_electrolyte_interface (category="solid" -> incar_key_for_npt()
+    # -> "npt_step0_sse", NOT "npt_step0_int" -- confirmed by direct call,
+    # correcting a wrong assumption from 2026-08-16 that fixed npt_step0_int
+    # instead and left this one, the actually-used template, untouched).
+    # That mistake let the job run with POTIM=1.0 for 5+ days across many
+    # resubmissions: SCF blew up (BRMIX) in the first few ionic steps, then
+    # the trajectory thermally ran away to >15,000 K by step 30 and sat
+    # there producing garbage for 15h+ before anyone caught it. Applying
+    # the same fix verified for nvt_dataset: halve the AIMD timestep.
+    # NSW unchanged, so wall-clock cost is unchanged.
+    POTIM: 0.5
+    ISIF: 4
+    ISMEAR: 0
+    SIGMA: 0.1
+    TEBEG: 300
+    TEEND: 300
+    LWAVE: F
+    LCHARG: F
+    NCORE: 8
+
+  npt_step0_int:
+    PREC: Normal
+    ENCUT: 520
+    IBRION: 0
+    MDALGO: 3
+    SMASS: 0
+    PMASS: 50
+    PSTRESS: 0
+    NSW: 3000
+    # POTIM 1.0->0.5 (2026-08-16, corrected 2026-08-21): originally applied
+    # here on the wrong assumption that this was the template
+    # HC_Na_electrolyte_interface's npt0 stage used for its FEXCP/thermal-
+    # runaway crash (category="solid"). It doesn't -- incar_key_for_npt()
+    # actually resolves "solid" to npt_step0_sse (fixed there instead, see
+    # that block's comment for the real incident). Leaving POTIM=0.5 here
+    # too since the underlying physics risk (mid-trajectory AIMD hard
+    # collision at a 1fs timestep) applies to any IBRION=0 template
+    # regardless of which category ends up routed here; NSW unchanged so
+    # wall-clock cost is unchanged.
+    POTIM: 0.5
+    ISIF: 4
+    ISMEAR: 0
+    SIGMA: 0.1
+    TEBEG: 300
+    TEEND: 300
+    LWAVE: F
+    LCHARG: F
+    NCORE: 8
+
+  # ── NVT AIMD (Nosé-Hoover, SMASS=0) — dataset boxes and production per T ─────
+  # POTIM, NSW, TEBEG/TEEND overridden at call time from platform limits or project.yaml
+  nvt_dataset:
+    PREC: Medium
+    ENCUT: 520
+    ISMEAR: 0
+    SIGMA: 0.02
+    NELM: 60
+    NELMIN: 4
+    EDIFF: 1.0e-4
+    NCORE: 8
+    IBRION: 0
+    NSW: 3000
+    # 2026-08-13: was 1.0 fs. FFS's DME_LiFSI dataset boxes (deform/random/
+    # rattle, esp. the 0.90/1.10 compressed/expanded scales) were repeatedly
+    # crashing ~300+ steps into the NVT trajectory with "ERROR FEXCP:
+    # supplied Exchange-correlation table is too small" -- a hard-collision
+    # blowup mid-dynamics, not a bad t=0 structure (check_and_fix_poscar's
+    # min-distance guard can't catch this; SCF was converging fine for
+    # hundreds of steps beforehand). 22+ retries on the worst box over 3
+    # days, always from an identical POSCAR (_ensure_box_poscar only
+    # regenerates it once), so it was doomed to keep recurring. Halving
+    # POTIM does not change wall-clock cost for a fixed NSW -- only the
+    # simulated timespan per box -- and is the standard fix for AIMD runs
+    # prone to this kind of numerical collision.
+    POTIM: 0.5
+    ISIF: 2
+    SMASS: 0
+    ISYM: 0
+    LWAVE: F
+    LCHARG: F
+    LREAL: A
+    LORBIT: 0
+    SYMPREC: 1.0e-4
+
+  nvt_production:
+    PREC: Medium
+    ENCUT: 520
+    ISMEAR: 0
+    SIGMA: 0.02
+    NELM: 60
+    NELMIN: 4
+    EDIFF: 1.0e-4
+    NCORE: 8
+    IBRION: 0
+    NSW: 3000
+    POTIM: 1.0
+    ISIF: 2
+    SMASS: 0
+    ISYM: 0
+    LWAVE: F
+    LCHARG: F
+    LREAL: A
+    LORBIT: 0
+    SYMPREC: 1.0e-4
+
+  # ── Liquid electrolyte DFT pre-optimisation (h02_aimd shared preopt) ─────────
+  preopt_isif3:
+    PREC: Accurate
+    ENCUT: 520
+    ISMEAR: 0
+    SIGMA: 0.05
+    NELM: 120
+    EDIFF: 1.0e-5
+    EDIFFG: -0.03
+    NCORE: 8
+    IBRION: 2
+    POTIM: 0.05
+    NSW: 300
+    ISIF: 3
+    ISYM: 0
+    LWAVE: F
+    LCHARG: F
+    LREAL: A
+    LORBIT: 0
+
+  preopt_isif2:
+    PREC: Accurate
+    ENCUT: 520
+    ISMEAR: 0
+    SIGMA: 0.05
+    NELM: 120
+    EDIFF: 1.0e-5
+    EDIFFG: -0.03
+    NCORE: 8
+    IBRION: 2
+    POTIM: 0.05
+    NSW: 300
+    ISIF: 2
+    ISYM: 0
+    LWAVE: F
+    LCHARG: F
+    LREAL: A
+    LORBIT: 0
+
+  # ── NEB — independent image relaxation (h03_neb, not VASP CI-NEB) ────────────
+  # Endpoints: tighter EDIFFG; images: looser, more steps
+  neb_endpoint:
+    PREC: Accurate
+    ENCUT: 520
+    IBRION: 2
+    NSW: 300
+    ISIF: 2
+    EDIFF: 1.0e-5
+    EDIFFG: -0.01
+    ISMEAR: 0
+    SIGMA: 0.05
+    LWAVE: F
+    LCHARG: F
+    LREAL: F
+    NCORE: 8
+
+  neb_images:
+    # Each image is an independent IBRION=2 CG relaxation (not VASP CI-NEB)
+    # NPAR (not NCORE): each image runs with 16 MPI tasks as a parallel unit
+    PREC: Accurate
+    ENCUT: 520
+    IBRION: 2
+    NSW: 500
+    ISIF: 2
+    EDIFF: 1.0e-5
+    EDIFFG: -0.03
+    ISMEAR: 0
+    SIGMA: 0.05
+    LWAVE: F
+    LCHARG: F
+    LREAL: F
+    NPAR: 8
+
+  # ── NEB AIMD pre-equilibration (h03_neb structure prep) ──────────────────────
+  neb_preopt_aimd:
+    PREC: Normal
+    ENCUT: 520
+    IBRION: 0
+    MDALGO: 2
+    NSW: 1000
+    POTIM: 1.0
+    ISIF: 2
+    ISMEAR: 0
+    SIGMA: 0.1
+    TEBEG: 300
+    TEEND: 300
+    EDIFF: 1.0e-5
+    LWAVE: F
+    LCHARG: F
+    NCORE: 4
+    NBLOCK: 1
+
+  # ── NEB structure pre-relaxation (h03_neb vc-relax and atom-opt) ─────────────
+  neb_preopt_isif3:
+    PREC: Accurate
+    ENCUT: 520
+    IBRION: 2
+    NSW: 300
+    ISIF: 3
+    EDIFF: 1.0e-5
+    EDIFFG: -0.01
+    NCORE: 4
+    ISMEAR: 0
+    SIGMA: 0.05
+    LWAVE: F
+    LCHARG: F
+
+  neb_preopt_isif2:
+    PREC: Accurate
+    ENCUT: 520
+    IBRION: 2
+    NSW: 500
+    ISIF: 2
+    EDIFF: 1.0e-5
+    EDIFFG: -0.03
+    NCORE: 4
+    ISMEAR: 0
+    SIGMA: 0.05
+    LWAVE: F
+    LCHARG: F
+
+  # ── VASPTool legacy templates (used by Chaai/AI tool interface) ───────────────
+  # "aimd": general NVT AIMD with WEIMIN/LORBIT for Chaai output
+  aimd:
+    PREC: Medium
+    ENCUT: 520
+    ISMEAR: 0
+    SIGMA: 0.02
+    NELM: 60
+    EDIFF: 1.0e-4
+    NELMIN: 4
+    NCORE: 8
+    IBRION: 0
+    POTIM: 1.0
+    NSW: 50000
+    ISIF: 2
+    SMASS: 0
+    TEBEG: 300
+    TEEND: 300
+    ISYM: 0
+    LWAVE: F
+    LCHARG: F
+    LREAL: A
+    WEIMIN: 0
+    LORBIT: 11
+
+  # "neb": VASP built-in CI-NEB (VASPTool only — h03_neb uses independent images)
+  neb:
+    PREC: Medium
+    ENCUT: 520
+    ISMEAR: 0
+    SIGMA: 0.05
+    NELM: 120
+    EDIFF: 1.0e-4
+    IBRION: 2
+    POTIM: 0.3
+    NSW: 300
+    EDIFFG: -0.05
+    IMAGES: 11
+    LCLIMB: ".TRUE."
+    SPRING: -5
+    LNEBCELL: ".FALSE."
+    ISIF: 2
+    ISYM: 0
+    LWAVE: F
+    LCHARG: F
+    LREAL: A
+    NPAR: 8
+    LORBIT: 0
+
+# ── h05_lammps Stage 0: GPU sizing from pot_com.pb file size ─────────────────
+gpu_sizing:
+  # file_size_mb <= max_mb → use these resources
+  - {max_mb:  50,    gpus: 4, ntasks: 4, cpus_per_task: 2, mem_gb: 100}
+  - {max_mb: 150,    gpus: 4, ntasks: 4, cpus_per_task: 4, mem_gb: 150}
+  - {max_mb: 999999, gpus: 4, ntasks: 2, cpus_per_task: 8, mem_gb: 200}
+
+# ── NVT production temperatures by material class ─────────────────────────────
+nvt_temperatures:
+  mol:  [300, 320, 340, 360, 380, 400, 450, 500]
+  sse:  [300, 320, 340, 360, 380, 400, 450, 500, 600, 700]
+  int:  [300, 320, 340, 360, 380, 400, 450, 500, 600, 700]
+
+# ── NPT density/temperature validation gate (h05 Stage 1) ────────────────────
+npt_validation:
+  density_min_g_cm3: 0.5
+  density_max_g_cm3: 3.0
+  temperature_tolerance_K: 100
+
+# ── Auto-fix rules (h02 auto_fix.py) ─────────────────────────────────────────
+auto_fix_rules:
+  incar_fixes:
+    ZPOTRF:  {LREAL: "F"}
+    ZBRENT:  {IBRION: "1", POTIM: "0.10"}
+    NELM_MAX: {ALGO: "All", NELM: 100}
+    BRMIX:   {IMIX: 1, AMIX: 0.1, BMIX: 0.001}
+    EDDDAV:  {ALGO: "Fast", NSIM: 1}
+    PSSYEVX: {ALGO: "All"}
+    EDDRMM:  {ALGO: "All"}
+    Sub-Space: {ALGO: "All"}
+    REAL_OPT:          {LREAL: "F"}
+    PRICEL:            {ISYM: 0}
+    VERY_LARGE_FORCES: {IBRION: "1"}
+  symprec_escalation: [1.0e-5, 1.0e-3, 1.0e-2]
+  deepmd_batch_reduction_factor: 0.5
+  max_auto_fix_attempts: 3
+  poscar_min_bytes: 200
+
+structure_check:
+  min_dist_A: 1.0
+  push_step: 0.4
+  push_margin_A: 0.05
+  max_iter: 200
+  potcar_min_dist_factor: 0.8   # min pairwise distance = factor * (RCORE_a + RCORE_b)
+
+# ── Project schema ────────────────────────────────────────────────────────────
+project_schema:
+  version: 1
+  state_filename: orchestrator_state.json
+  history_filename: orchestrator_history.jsonl
+  valid_stages: [PENDING, RUNNING, COMPLETE, FAILED, SKIPPED]
+  required_fields: [name, category]
+  category_required:
+    inorganic_sse:      [mobile_ion]
+    solid:              [mobile_ion]
+    inorganic:          [mobile_ion]
+    int1:               []
+    int2:               []
+    liquid_electrolyte: [solvents]
+    solvent:            [solvents]
+    salt:               [solvents]
+    polymer:            [polymers]
+    copolymer:          [polymers]
+
+# ── Molecule data overrides ───────────────────────────────────────────────────
+# Extend/override the species tables used for box sizing in h00_design.
+# Highest priority (wins over hpca/data/molecular_properties.json and the
+# builtin tables).  natoms is auto-derived from input_structures/{name}.vasp
+# when the molecule file exists, so usually only density needs adding here
+# for a brand-new solvent/salt.
+#   molecule_data:
+#     MyNewSolvent: {natoms: 21, mw: 133.2, density_gcm3: 0.95}
+molecule_data: {}
+
+# Fallbacks when a species has no molecule file, data-json, or molecule_data entry
+# (their use is logged as WARNING by h00_design)
+species_fallbacks:
+  natoms_per_mol: 12
+  density_gcm3: 1.0

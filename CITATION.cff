@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "If you use this software, cite the repository and the archived release."
+title: "HPCA"
+type: software
+version: 0.1.0
+date-released: 2026-08-21
+license: LicenseRef-Proprietary
+authors:
+  - name: "Project contributors"
+repository-code: "https://github.com/YOUR-ACCOUNT/hpca"
+

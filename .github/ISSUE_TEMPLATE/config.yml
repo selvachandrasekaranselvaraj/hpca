@@ -1,0 +1,6 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security report
+    url: https://github.com/YOUR-ACCOUNT/hpca/security/advisories/new
+    about: Report security issues privately.
+

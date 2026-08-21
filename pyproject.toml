@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hpca"
+version = "0.1.0"
+description = "Autonomous, restartable computational-materials workflows on HPC systems"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {file = "LICENSE"}
+dependencies = ["numpy", "pandas", "plotly", "pyyaml", "scipy"]
+
+[project.optional-dependencies]
+dft = ["ase", "pymatgen"]
+dev = ["build", "pytest", "pytest-cov", "ruff"]
+docs = ["mkdocs-gen-files>=0.5", "mkdocs-literate-nav>=0.6", "mkdocs-material>=9.5", "mkdocstrings[python]>=0.25"]
+manuscript = ["python-docx"]
+monitoring = ["fastapi", "uvicorn"]
+viz = ["kaleido"]
+
+[project.scripts]
+hpca = "hpca.pipeline:main"
+hpca-daemon = "hpca.daemon.cli:main"
+hpca-monitor = "hpca.monitor.dashboard:main"
+hpca-neb = "hpca.core.neb.cli:main"
+hpca-orch = "hpca.orchestrator.cli:main"
+hpca-status = "hpca.core.status:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["hpca*"]
+
+[tool.setuptools.package-data]
+"hpca.config" = ["*.yaml"]
+"hpca.data" = ["*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["hpca/tests"]
+addopts = "--tb=short -q"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+

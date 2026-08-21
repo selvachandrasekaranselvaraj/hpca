@@ -1,0 +1,25 @@
+workflow_version: 2
+name: peo_dme_lifsi
+category: polymer
+polymers: [PEO]
+mobile_ion: Li
+T_ref: 300
+simulation:
+  solvents: [DME]
+  aimd_temps: [300, 400]
+  nvt_temps: [300, 320, 340, 360, 380, 400, 450, 500]
+mlip_backend: deepmd
+stages:
+  design: true
+  dft: true
+  aimd: true
+  mlip: true
+  cmd: true
+  lammps: true
+  analysis: true
+  plotting: true
+  manuscript: true
+execution:
+  default_lane: auto
+autonomy:
+  mode: unattended

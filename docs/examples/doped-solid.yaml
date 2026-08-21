@@ -1,0 +1,29 @@
+workflow_version: 2
+name: lisi15_c_doped
+category: solid
+mobile_ion: Li
+T_ref: 300
+cif: Si.vasp
+doping:
+  host: Si
+  dopant: C
+  fractions: [0.05, 0.10]
+simulation:
+  aimd_temps: [300, 400, 500, 600]
+  nvt_temps: [300, 320, 340, 360, 380, 400, 500, 600]
+mlip_backend: both
+stages:
+  design: true
+  dft: true
+  aimd: true
+  neb: true
+  mlip: true
+  lammps: true
+  analysis: true
+  electronic: true
+  echem: true
+  plotting: true
+execution:
+  default_lane: auto
+autonomy:
+  mode: unattended

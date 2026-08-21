@@ -1,0 +1,108 @@
+# hpca — per-project config lives in <project>/project.yaml, NOT here.
+# This file contains only platform-wide defaults shared across all projects.
+#
+# To add a new project: run "hpca new <project_dir>" — it creates project.yaml.
+# The orchestrator discovers project.yaml files via ProjectRegistry.discover().
+#
+# Sections:
+#   category_defaults  — physics/chem defaults merged into every project by category
+#   mlip_registry      — MLIP names, supported categories, and HPC env
+#   hpc                — cluster-level paths and partition names
+#
+# Cross-references (update all when adding a category or MLIP):
+#   hpca/config/platform.yaml     — HPC paths and simulation limits
+#   hpca/core/project.py          — MaterialProject.from_dict() known_fields
+#   hpca/orchestrator/handlers/h04_mlip.py  — MLIP training dispatch
+#   hpca/orchestrator/handlers/h05_lammps.py — MLMD LAMMPS dispatch
+
+# ── Category defaults ──────────────────────────────────────────────────────────
+# Merged into project.extras after project.yaml is loaded.
+# Project-specific values override these.
+category_defaults:
+  inorganic:
+    k_SEI: 1.0e-18
+    j0_mA_cm2: 0.5
+    alpha: 0.5
+    A_powerlaw: 0.265
+    n_powerlaw: 0.155
+    kjma_k: 0.001
+    kjma_n: 2.5
+  inorganic_sse:
+    k_SEI: 1.0e-18
+    j0_mA_cm2: 0.5
+    alpha: 0.5
+    A_powerlaw: 0.265
+    n_powerlaw: 0.155
+    kjma_k: 0.001
+    kjma_n: 2.5
+  polymer:
+    j0_mA_cm2: 0.1
+    alpha: 0.5
+    A_powerlaw: 0.265
+    n_powerlaw: 0.155
+    kjma_k: 0.001
+    kjma_n: 2.5
+  liquid_electrolyte:
+    k_SEI: 1.0e-20
+    j0_mA_cm2: 1.0
+    alpha: 0.5
+    A_powerlaw: 0.20
+    n_powerlaw: 0.25
+    kjma_k: 0.005
+    kjma_n: 3.0
+
+# ── MLIP registry ──────────────────────────────────────────────────────────────
+# Cross-ref: hpca/orchestrator/handlers/h04_mlip.py — add dispatch entry there too
+mlip_registry:
+  deepmd:
+    categories: [inorganic, inorganic_sse]
+    env: deepmd-lammps-gpu
+    gpu: true
+  mace-mp0:
+    categories: [inorganic, inorganic_sse, polymer, liquid_electrolyte]
+    env: deepmd-lammps-gpu
+    gpu: true
+  uma:
+    categories: [inorganic, inorganic_sse, polymer, liquid_electrolyte]
+    env: deepmd-lammps-gpu
+    gpu: true
+  mace-off23:
+    categories: [polymer, liquid_electrolyte]
+    env: deepmd-lammps-gpu
+    gpu: true
+  m3gnet-pbe:
+    categories: [inorganic, inorganic_sse]
+    env: cladue
+    gpu: false
+  chgnet-pbe:
+    categories: [inorganic, inorganic_sse]
+    env: cladue
+    gpu: false
+  tensornet-pbe:
+    categories: [inorganic, inorganic_sse]
+    env: cladue
+    gpu: false
+  esen-omol:
+    categories: [polymer, liquid_electrolyte]
+    env: deepmd-lammps-gpu
+    gpu: true
+
+# ── HPC cluster settings ───────────────────────────────────────────────────────
+# Cross-ref: hpca/pipeline.py cmd_start() reads python_cladue and python_deepmd
+hpc:
+  python_cladue: /path/to/apps/apps/cladue/env/bin/python3
+  python_deepmd: /path/to/apps/apps/deepmd-lammps-gpu/conda_env/bin/python3
+  lammps_bin: /path/to/apps/apps/deepmd-lammps-gpu/lammps_install/bin/lmp
+  lammps_cpu_bin: /path/to/apps/apps/deepmd-lammps-cpu/build/lmp
+  hf_cache: /path/to/workspace/hf_cache
+  vasp_module: vasp/6.4.2_openMP
+  potpaw_dir: /path/to/apps/apps/vasp_src/potential/potpaw_PBE
+  accounts:
+    standard: your_account
+    gpu_h100: your_account
+    gpu_h100l: lips
+  partitions:
+    cpu_standard: standard
+    gpu: gpu-h100
+    gpu_long: gpu-h100l
+    long: long
